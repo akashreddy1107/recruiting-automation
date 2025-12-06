@@ -1,0 +1,43 @@
+# Recruiting Automation System - Updates Summary
+Date: December 6, 2025
+
+## 1. Resume Parsing & Candidate Extraction
+- **Supported Formats**: Added support for parsing PDF and Word (.docx) resumes from email attachments.
+- **Multiple Resumes**: The system now handles emails with multiple resume attachments, creating a separate candidate entry for each.
+- **Data Extraction**: Improved extraction of candidate details (Name, Email, Phone, LinkedIn) from the resume text.
+- **Fallback**: If no resume is found, the system attempts to parse candidate details from the email body.
+
+## 2. Google Sheets Integration
+- **Automatic Export**: Candidates are automatically exported to a Google Sheet after each automation run.
+- **Resume Links**: The Google Sheet now includes a direct link to the resume file on Google Drive.
+- **Bug Fix**: Fixed an issue where the Sheets export process was overwriting candidate data in the local database.
+
+## 3. Interview Email Feature
+- **Selection**: You can now select candidates (individually or "Select All") on the Candidates page.
+- **Email Sending**: Added a "Send Invite" button to send personalized interview invitations to selected candidates via your Gmail account.
+- **Status**: Displays a success message after emails are sent.
+
+## 4. Dashboard Enhancements
+- **Auto-Refresh**: The dashboard statistics (Total Candidates, Average Score, etc.) now automatically update immediately after a run.
+- **Top Candidates**: The "Top Candidates" widget displays real data, sorted by score.
+
+## 5. Candidates Page UI Improvements
+- **Grouping**: Candidates are now grouped by "Run Date/Time" to easily distinguish between different automation batches.
+- **Sorting**: Added a dropdown to sort candidates by **Score**, **Experience**, or **Skills** within their groups.
+- **Visibility**: Improved text contrast to ensure all information is clearly visible on the dark background.
+- **Resume View**: Added a document icon button to each candidate card to open their resume directly in a new tab.
+
+## 6. How to Run the Application
+To start the application again in the future:
+
+1.  **Start Backend**:
+    - Open a terminal.
+    - Navigate to the backend folder: `cd backend`
+    - Run: `npm start`
+
+2.  **Start Frontend**:
+    - Open a second terminal.
+    - Navigate to the frontend folder: `cd frontend`
+    - Run: `npm run dev`
+
+3.  **Access App**: Open your browser and go to `http://localhost:5173`.

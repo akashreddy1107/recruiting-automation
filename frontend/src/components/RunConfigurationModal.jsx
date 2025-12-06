@@ -1,0 +1,125 @@
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, Play, Calendar, Briefcase, Award, Globe } from 'lucide-react';
+import clsx from 'clsx';
+
+export default function RunConfigurationModal({ isOpen, onClose, onRun }) {
+    const [config, setConfig] = useState({
+        startDate: new Date().toISOString().split('T')[0],
+        skills: 'React, Node, JavaScript',
+        experience: 2,
+        visa: 'Citizen, Green Card'
+    });
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        onRun({
+            ...config,
+            skills: config.skills.split(',').map(s => s.trim()),
+            visa: config.visa.split(',').map(v => v.trim())
+        });
+    };
+
+    return (
+        <AnimatePresence>
+            {isOpen && (
+                <>
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={onClose}
+                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+                    />
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                        className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none"
+                    >
+                        <div className="gemini-card w-full max-w-lg pointer-events-auto bg-charcoal border border-white/10 shadow-2xl">
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="text-2xl font-bold text-white">Configure Run</h2>
+                                <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-white">
+                                    <X size={20} />
+                                </button>
+                            </div>
+
+                            <form onSubmit={handleSubmit} className="space-y-6">
+                                {/* Start Date */}
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                                        <Calendar size={16} className="text-accent-blue" />
+                                        Read Emails From
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={config.startDate}
+                                        onChange={(e) => setConfig({ ...config, startDate: e.target.value })}
+                                        className="gemini-input"
+                                        required
+                                    />
+                                </div>
+
+                                {/* Skills */}
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                                        <Award size={16} className="text-accent-purple" />
+                                        Required Skills (comma separated)
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={config.skills}
+                                        onChange={(e) => setConfig({ ...config, skills: e.target.value })}
+                                        className="gemini-input"
+                                        placeholder="e.g. React, Python, AWS"
+                                    />
+                                </div>
+
+                                {/* Experience */}
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                                        <Briefcase size={16} className="text-green-400" />
+                                        Minimum Experience (Years)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        value={config.experience}
+                                        onChange={(e) => setConfig({ ...config, experience: e.target.value })}
+                                        className="gemini-input"
+                                    />
+                                </div>
+
+                                {/* Visa */}
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                                        <Globe size={16} className="text-orange-400" />
+                                        Accepted Visa Status (comma separated)
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={config.visa}
+                                        onChange={(e) => setConfig({ ...config, visa: e.target.value })}
+                                        className="gemini-input"
+                                        placeholder="e.g. Citizen, Green Card, H1B"
+                                    />
+                                </div>
+
+                                <div className="pt-4">
+                                    <button
+                                        type="submit"
+                                        className="w-full gemini-button gemini-button-primary"
+                                    >
+                                        <Play size={20} fill="currentColor" />
+                                        Start Automation
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </motion.div>
+                </>
+            )}
+        </AnimatePresence>
+    );
+}
