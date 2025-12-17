@@ -7,6 +7,7 @@ import Candidates from './pages/Candidates';
 import History from './pages/History';
 import Settings from './pages/Settings';
 import PlaceholderPage from './pages/PlaceholderPage';
+import Emails from './pages/Emails';
 
 // Placeholder Pages
 const Login = () => {
@@ -61,7 +62,7 @@ function App() {
                         <Route path="candidates" element={<Candidates />} />
                         <Route path="jobs" element={<PlaceholderPage />} />
                         <Route path="matching" element={<PlaceholderPage />} />
-                        <Route path="emails" element={<PlaceholderPage />} />
+                        <Route path="emails" element={<Emails />} />
                         <Route path="history" element={<History />} />
                         <Route path="settings" element={<Settings />} />
                         <Route path="*" element={<div>Page Not Found</div>} />

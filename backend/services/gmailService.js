@@ -5,6 +5,7 @@ import * as driveService from './driveService.js';
 import { google } from 'googleapis';
 import * as authService from './authService.js';
 import db from '../data/db.js';
+import { ALL_SKILLS, VISA_KEYWORDS } from './skills.js';
 
 // ... existing imports ...
 
@@ -50,33 +51,187 @@ export const getMessage = async (email, messageId) => {
     return res.data;
 };
 
+// Helper to validate if text is a resume
+const isValidResume = (text) => {
+    if (!text || text.length < 50) return false; // Too short
+    const lower = text.toLowerCase();
+
+    // 1. Reject Candidate Response Forms
+    if (lower.includes('candidate response form') && lower.includes('task order')) return false;
+    if (lower.includes('form 2') && lower.includes('candidate name')) return false;
+
+    // 2. Reject ID Cards / Visas
+    if (lower.includes('united states of america') && lower.includes('employment authorization')) return false;
+    if (lower.includes('permanent resident card') && lower.includes('uscis')) return false;
+
+    return true;
+};
+
 // Helper to extract details from text
 const extractDetails = (text) => {
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+
+    // 1. Phone
     const phoneMatch = text.match(/(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/);
     const phone = phoneMatch ? phoneMatch[0] : 'N/A';
 
-    const linkedinMatch = text.match(/linkedin\.com\/in\/[a-zA-Z0-9-]+/);
-    const linkedin = linkedinMatch ? `https://www.${linkedinMatch[0]}` : 'N/A';
+    // 2. Links
+    const linkedinMatch = text.match(/linkedin\.com\/in\/([a-zA-Z0-9-]+)/);
+    const linkedin = linkedinMatch ? `https://www.linkedin.com/in/${linkedinMatch[1]}` : 'N/A';
 
-    const githubMatch = text.match(/github\.com\/[a-zA-Z0-9-]+/);
-    const github = githubMatch ? `https://www.${githubMatch[0]}` : 'N/A';
+    const githubMatch = text.match(/github\.com\/([a-zA-Z0-9-]+)/);
+    const github = githubMatch ? `https://www.github.com/${githubMatch[1]}` : 'N/A';
 
-    // Basic Education Extraction (heuristic)
-    const educationKeywords = ['Bachelor', 'Master', 'PhD', 'B.Sc', 'M.Sc', 'B.Tech', 'M.Tech', 'University', 'College'];
-    const educationLines = text.split('\n').filter(line => educationKeywords.some(k => line.includes(k))).slice(0, 2); // Take top 2 matches
-    const education = educationLines.length > 0 ? educationLines.join('; ').trim() : 'N/A';
+    // 3. Smart Education Extraction
+    let education = 'N/A';
+    const degrees = [
+        { type: 'PhD', regex: /\b(PhD|Doctor of Philosophy|D\.Phil)\b/i, rank: 3 },
+        { type: 'MASTER', regex: /\b(Master|M\.S|M\.Sc|M\.Tech|MBA|M\.E|Post Graduate)\b/i, rank: 2 },
+        { type: 'BACHELOR', regex: /\b(Bachelor|B\.S|B\.Sc|B\.Tech|B\.E|B\.A)\b/i, rank: 1 }
+    ];
 
-    // Job Role (heuristic - look for common titles near top or in experience)
-    const roles = ['Software Engineer', 'Developer', 'Frontend', 'Backend', 'Full Stack', 'DevOps', 'Data Scientist', 'Manager'];
-    const jobRoleMatch = text.split('\n').find(line => roles.some(r => line.includes(r)));
-    const jobRole = jobRoleMatch ? jobRoleMatch.trim() : 'N/A';
+    let foundDegree = null;
+    let foundYear = '';
 
-    // Certifications
-    const certKeywords = ['Certified', 'Certificate', 'AWS', 'Azure', 'GCP', 'PMP'];
-    const certLines = text.split('\n').filter(line => certKeywords.some(k => line.includes(k) && line.length < 100)).slice(0, 3);
-    const certifications = certLines.length > 0 ? certLines.join('; ').trim() : 'N/A';
+    for (const line of lines) {
+        if (foundDegree && foundDegree.rank === 3) break;
 
-    return { phone, linkedin, github, education, jobRole, certifications };
+        for (const deg of degrees) {
+            if (deg.regex.test(line)) {
+                if (!foundDegree || deg.rank > foundDegree.rank) {
+                    foundDegree = deg;
+                    const yearMatch = line.match(/(20\d{2}|19\d{2})/);
+                    foundYear = yearMatch ? `(${yearMatch[0]})` : '';
+                }
+            }
+        }
+    }
+
+    if (foundDegree) {
+        education = `${foundDegree.type} ${foundYear}`.trim();
+    }
+
+    // 4. Job Role (Current Role Extraction)
+    const roles = ['Software Engineer', 'Developer', 'Frontend', 'Backend', 'Full Stack', 'DevOps', 'Data Scientist', 'Manager', 'Analyst', 'Architect', 'Administrator', 'Consultant', 'Specialist', 'Technician', 'Director', 'Lead', 'Associate', 'Intern', 'Scientist', 'Coordinator'];
+    let jobRole = 'N/A';
+    const roleRegex = new RegExp(`\\b(${roles.join('|')})\\b`, 'i');
+
+    for (let i = 0; i < Math.min(lines.length, 60); i++) {
+        const line = lines[i];
+        if (line.length > 80) continue;
+
+        const match = line.match(roleRegex);
+        if (match) {
+            const modifierRegex = /\b(Senior|Lead|Principal|Junior|Staff|Chief|Head|Assistant|Associate)\b/i;
+            const modMatch = line.match(modifierRegex);
+            const roleName = match[0];
+            const modifier = modMatch ? modMatch[0] : '';
+            jobRole = modifier ? `${modifier} ${roleName}` : roleName;
+            jobRole = jobRole.replace(/\b\w/g, c => c.toUpperCase()); // Title Case
+            break;
+        }
+    }
+
+    // 5. Certifications
+    const certKeywords = ['Certified', 'Certificate', 'AWS', 'Azure', 'GCP', 'PMP', 'Scrum', 'CISSP', 'Google'];
+    const certLines = lines.filter(line => certKeywords.some(k => line.includes(k) && line.length < 100)).slice(0, 3);
+    const certifications = certLines.length > 0 ? certLines.map(l => l.replace(/[^a-zA-Z0-9\s,]/g, '').trim()).join('; ') : 'N/A';
+
+    // --- SCORED NAME EXTRACTION LOGIC ---
+    let candidateName = null;
+    let maxScore = 0;
+
+    const blockedTerms = [
+        'resume', 'curriculum', 'vitae', 'cv', 'profile', 'summary', 'about', 'contact', 'mobile', 'phone', 'email', 'address', 'linkedin', 'github',
+        'education', 'skills', 'experience', 'projects', 'certifications', 'languages', 'references', 'page', 'task order', 'job description',
+        'citizen', 'visa', 'passport', 'nationality', 'date', 'birth', 'gender', 'marital', 'status', 'work', 'permit',
+        'expertise', 'proficient', 'competent', 'declaration', 'objective', 'professional', 'certification', 'qualification', 'summary',
+        'overview', 'background', 'history', 'employment', 'career', 'goal', 'target', 'role', 'responsibilities',
+        'contractor', 'consultant', 'employee', 'employer', 'client', 'project', 'team', 'member',
+        'operating', 'system', 'linux', 'windows', 'macos', 'database', 'server', 'application', 'software', 'technology',
+        'narrative', 'description', 'details', 'info', 'information', 'personal', 'statement', 'tools', 'etl', 'dashboard', 'created',
+        'managed', 'developed', 'designed', 'implemented', 'orchestrated', 'holder', 'studio', 'intelligence', 'development', 'business'
+    ];
+
+    const companySuffixes = ['limited', 'ltd', 'inc', 'corp', 'corporation', 'llc', 'pvt', 'group', 'services', 'solutions', 'systems', 'technologies', 'consulting'];
+
+    // Scan top 50 lines (slightly deeper to find name if top is junk)
+    for (let i = 0; i < Math.min(lines.length, 50); i++) {
+        let line = lines[i];
+
+        // 1. Clean Pre-processing
+        const namePrefixValues = ['name', 'candidate name', 'contractor name', 'consultant name', 'full name'];
+        const lowerLine = line.toLowerCase();
+
+        for (const prefix of namePrefixValues) {
+            if (lowerLine.startsWith(prefix + ':') || lowerLine.startsWith(prefix)) {
+                // Extract everything after the prefix/colon
+                const parts = line.split(/[:\t]/);
+                if (parts.length > 1) {
+                    const potentialName = parts[1].trim();
+                    if (potentialName.length > 2) {
+                        line = potentialName;
+                    }
+                }
+            }
+        }
+
+        const splitMatch = line.match(/\s+[|–\-(]\s+|[|–\-(]/);
+        if (splitMatch) line = line.substring(0, splitMatch.index).trim();
+        if (line.includes(',')) line = line.split(',')[0].trim();
+
+        if (line.length < 3 || line.length > 35) continue;
+
+        const lower = line.toLowerCase();
+
+        // 2. Fatal Checks (Immediate Disqualifiers)
+        if (/\d/.test(line)) continue;
+        if (/[@.www]/.test(lower)) continue;
+        if (blockedTerms.some(t => lower.includes(t))) continue;
+        if (roles.some(r => lower.includes(r.toLowerCase()))) continue;
+        if (companySuffixes.some(s => lower.endsWith(' ' + s) || lower.includes(' ' + s + ' '))) continue;
+
+        if (['green card', 'visa', 'h1b', 'citizen', 'permanent resident'].some(v => lower.includes(v))) continue;
+        if (lower.startsWith('certified') || lower.includes('certification')) continue;
+        if (ALL_SKILLS.some(skill => lower === skill.toLowerCase())) continue;
+        if (line.includes(':')) continue;
+
+        const words = line.split(/\s+/);
+        // Allow single-word names if they are robust (Sulabh)
+        if (words.length < 1 || words.length > 4) continue;
+        if (words.length === 1 && line.length < 4) continue;
+
+        const stopWords = ['the', 'and', 'for', 'with', 'via', 'from', 'in', 'at', 'to', 'of', 'on', 'by', 'is', 'as', 'my', 'i', 'an', 'or', 'be', 'excellent', 'good', 'proficient'];
+        if (words.some(w => stopWords.includes(w.toLowerCase()))) continue;
+
+        // 4. Scoring
+        let score = 0;
+        score += Math.max(0, (40 - i) * 2);
+
+        const isTitleCase = words.every(w => /^[A-Z]/.test(w));
+        const isAllCaps = line === line.toUpperCase() && /[A-Z]/.test(line);
+
+        if (isTitleCase) score += 40;
+        else if (isAllCaps) score += 20;
+        else continue;
+
+        if (line.length < 5) score -= 10;
+        if (words.length === 2) score += 15;
+        if (words.length === 1 && isTitleCase) score += 10;
+
+        if (['senior', 'junior', 'lead', 'principal', 'staff', 'architect'].some(t => lower.includes(t))) score -= 30;
+
+        if (score > maxScore) {
+            maxScore = score;
+            candidateName = line;
+        }
+    }
+
+    // 6. Email (Regex)
+    const emailMatch = text.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/);
+    const candidateEmail = emailMatch ? emailMatch[0] : null;
+
+    return { phone, linkedin, github, education, jobRole, certifications, candidateEmail, candidateName };
 };
 
 export const parseCandidateFromEmail = async (email, message) => {
@@ -118,39 +273,51 @@ export const parseCandidateFromEmail = async (email, message) => {
                     resumeType = 'Word';
                 }
 
+                // VALIDATE RESUME CONTENT
+                if (!isValidResume(text)) {
+                    console.log(`[Validation] Skipped non-resume file: ${part.filename}`);
+                    continue;
+                }
+
                 // Upload to Drive
                 const resumeLink = await driveService.uploadResume(email, part.filename, part.mimeType, buffer);
 
                 // Extract Details
                 const details = extractDetails(text);
 
-                // Skills & Experience (re-use existing logic but apply to resume text)
-                const skillsList = ['React', 'Node', 'Python', 'Java', 'AWS', 'Docker', 'Kubernetes', 'SQL', 'NoSQL', 'TypeScript'];
-                const foundSkills = skillsList.filter(skill => new RegExp(`\\b${skill}\\b`, 'i').test(text));
+                // Skills & Experience (Comprehensive)
+                const foundSkills = new Set();
+                ALL_SKILLS.forEach(skill => {
+                    const escapedSkill = skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    // Word boundary check
+                    if (new RegExp(`(\\b|^)${escapedSkill}(\\b|$)`, 'i').test(text)) {
+                        foundSkills.add(skill);
+                    }
+                });
 
                 const experienceMatch = text.match(/(\d+)\+?\s*years?/i);
                 const experience = experienceMatch ? parseInt(experienceMatch[1]) : 0;
 
-                const visaKeywords = ['H1B', 'Green Card', 'Citizen', 'Visa', 'Sponsorship'];
-                const visaStatus = visaKeywords.find(v => new RegExp(`\\b${v}\\b`, 'i').test(text)) || 'Unknown';
+                const visaStatus = VISA_KEYWORDS.find(v => new RegExp(`\\b${v}\\b`, 'i').test(text)) || 'Unknown';
 
                 candidates.push({
                     id: message.id + '_' + part.partId, // Unique ID per attachment
-                    name: senderName, // Default to sender, could try to extract from resume
-                    email: senderEmail,
+                    name: details.candidateName || "N/A", // ONLY extracted name
+                    email: details.candidateEmail || "N/A", // ONLY extracted email
                     phone: details.phone,
                     linkedin: details.linkedin,
                     github: details.github,
                     education: details.education,
                     jobRole: details.jobRole,
                     certifications: details.certifications,
-                    skills: foundSkills,
+                    skills: Array.from(foundSkills),
                     experience,
                     visaStatus,
                     date,
                     resumeLink,
                     resumeType,
-                    subject
+                    subject,
+                    originalText: text // Include text for reading
                 });
             }
         }
@@ -171,30 +338,37 @@ export const parseCandidateFromEmail = async (email, message) => {
 
         if (body) {
             const details = extractDetails(body);
-            const skillsList = ['React', 'Node', 'Python', 'Java', 'AWS', 'Docker', 'Kubernetes', 'SQL', 'NoSQL', 'TypeScript'];
-            const foundSkills = skillsList.filter(skill => new RegExp(`\\b${skill}\\b`, 'i').test(body));
+
+            const foundSkills = new Set();
+            ALL_SKILLS.forEach(skill => {
+                const escapedSkill = skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                if (new RegExp(`(\\b|^)${escapedSkill}(\\b|$)`, 'i').test(body)) {
+                    foundSkills.add(skill);
+                }
+            });
+
             const experienceMatch = body.match(/(\d+)\+?\s*years?/i);
             const experience = experienceMatch ? parseInt(experienceMatch[1]) : 0;
-            const visaKeywords = ['H1B', 'Green Card', 'Citizen', 'Visa', 'Sponsorship'];
-            const visaStatus = visaKeywords.find(v => new RegExp(`\\b${v}\\b`, 'i').test(body)) || 'Unknown';
+            const visaStatus = VISA_KEYWORDS.find(v => new RegExp(`\\b${v}\\b`, 'i').test(body)) || 'Unknown';
 
             candidates.push({
                 id: message.id,
-                name: senderName,
-                email: senderEmail,
+                name: details.candidateName || "N/A",
+                email: details.candidateEmail || "N/A",
                 phone: details.phone,
                 linkedin: details.linkedin,
                 github: details.github,
                 education: details.education,
                 jobRole: details.jobRole,
                 certifications: details.certifications,
-                skills: foundSkills,
+                skills: Array.from(foundSkills),
                 experience,
                 visaStatus,
                 date,
                 resumeLink: 'N/A',
                 resumeType: 'Email Body',
-                subject
+                subject,
+                originalText: body
             });
         }
     }
@@ -238,4 +412,68 @@ export const sendEmail = async (email, to, subject, body) => {
             raw: encodedMessage,
         },
     });
+};
+
+export const getGroupedEmails = async (email) => {
+    // 1. Fetch recent job-related emails
+    // Reuse listUnreadMessages logic (which is actually "recent job emails")
+    const messages = await listUnreadMessages(email);
+
+    // 2. Parse details from each email
+    const grouped = {};
+    const skillSet = new Set(['React', 'Node', 'Python', 'Java', 'AWS', 'Docker', 'Kubernetes', 'SQL', 'NoSQL', 'TypeScript']);
+
+    // Initialize groups for known skills
+    skillSet.forEach(skill => {
+        grouped[skill] = [];
+    });
+    grouped['Other'] = [];
+
+    for (const msg of messages) {
+        try {
+            const rawMsg = await getMessage(email, msg.id);
+            const candidates = await parseCandidateFromEmail(email, rawMsg);
+
+            // Note: parseCandidateFromEmail returns an array of candidates (usually 1 per email/attachment)
+            // For the email view, we want to show the EMAIL, but categorized by the skills found in it.
+            // If multiple candidates are in one email, we'll just take the union of skills.
+
+            if (candidates.length > 0) {
+                const skillsInEmail = new Set();
+                candidates.forEach(c => c.skills.forEach(s => skillsInEmail.add(s)));
+
+                const emailData = {
+                    id: msg.id,
+                    snippet: rawMsg.snippet,
+                    subject: candidates[0].subject,
+                    from: candidates[0].name,
+                    date: candidates[0].date,
+                    // Store the first candidate's ID for "reading" or just use message ID
+                    messageId: msg.id,
+                    body: candidates[0].originalText || rawMsg.snippet // Use full text if available
+                };
+
+                let assigned = false;
+                skillsInEmail.forEach(skill => {
+                    // Normalize skill casing for the key
+                    const key = [...skillSet].find(s => s.toLowerCase() === skill.toLowerCase());
+                    if (key) {
+                        grouped[key].push(emailData);
+                        assigned = true;
+                    }
+                });
+
+                if (!assigned) {
+                    grouped['Other'].push(emailData);
+                }
+            }
+        } catch (err) {
+            console.error(`Error processing message ${msg.id} for grouping:`, err);
+        }
+    }
+
+    // Remove empty groups or leave them (User asked for "create a section for python where...").
+    // I'll filter out empty groups to keep UI clean, or keep them if they want to see all potentials. 
+    // Let's keep them if they have content, but maybe we just return the whole object and let frontend decide.
+    return grouped;
 };

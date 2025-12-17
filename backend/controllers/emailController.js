@@ -28,3 +28,19 @@ export const sendInterviewEmail = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+
+export const getGroupedEmails = async (req, res) => {
+    const { email } = req.query; // Usually expected as a query param or from auth context
+
+    if (!email) {
+        return res.status(400).json({ error: 'Email parameter is required' });
+    }
+
+    try {
+        const grouped = await gmailService.getGroupedEmails(email);
+        res.json(grouped);
+    } catch (error) {
+        console.error('Grouped Emails Controller Error:', error);
+        res.status(500).json({ error: error.message });
+    }
+};
