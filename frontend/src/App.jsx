@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { AutomationProvider } from './contexts/AutomationContext';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Candidates from './pages/Candidates';
@@ -53,24 +54,25 @@ const PrivateRoute = ({ children }) => {
 function App() {
     return (
         <AuthProvider>
-            <Router>
-                <Routes>
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
-                        <Route index element={<Navigate to="/dashboard" />} />
-                        <Route path="dashboard" element={<Dashboard />} />
-                        <Route path="candidates" element={<Candidates />} />
-                        <Route path="jobs" element={<PlaceholderPage />} />
-                        <Route path="matching" element={<PlaceholderPage />} />
-                        <Route path="emails" element={<Emails />} />
-                        <Route path="history" element={<History />} />
-                        <Route path="settings" element={<Settings />} />
-                        <Route path="*" element={<div>Page Not Found</div>} />
-                    </Route>
-                </Routes>
-            </Router>
+            <AutomationProvider>
+                <Router>
+                    <Routes>
+                        <Route path="/login" element={<Login />} />
+                        <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
+                            <Route index element={<Navigate to="/dashboard" />} />
+                            <Route path="dashboard" element={<Dashboard />} />
+                            <Route path="candidates" element={<Candidates />} />
+                            <Route path="jobs" element={<PlaceholderPage />} />
+                            <Route path="matching" element={<PlaceholderPage />} />
+                            <Route path="emails" element={<Emails />} />
+                            <Route path="history" element={<History />} />
+                            <Route path="settings" element={<Settings />} />
+                            <Route path="*" element={<div>Page Not Found</div>} />
+                        </Route>
+                    </Routes>
+                </Router>
+            </AutomationProvider>
         </AuthProvider>
     );
 }
-
 export default App;

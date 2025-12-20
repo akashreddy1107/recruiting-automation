@@ -13,24 +13,62 @@ export default function Emails() {
     // Mock user email if not logged in (for dev)
     const emailToUse = user?.email || "akashreddy1107@gmail.com";
 
+    const CACHE_KEY = `cached_emails_${emailToUse}`;
+    const CACHE_DURATION = 1000 * 60 * 5; // 5 minutes
+
     useEffect(() => {
+        const checkCache = () => {
+            const cached = sessionStorage.getItem(CACHE_KEY);
+            if (cached) {
+                const { data, timestamp } = JSON.parse(cached);
+                const isValid = Date.now() - timestamp < CACHE_DURATION;
+
+                if (isValid) {
+                    setGroupedEmails(data);
+                    expandSections(data);
+                    setLoading(false);
+                    return true;
+                }
+            }
+            return false;
+        };
+
+        if (!checkCache()) {
+            fetchEmails();
+        }
+    }, [emailToUse]);
+
+    const fetchEmails = () => {
+        setLoading(true);
         fetch(`http://localhost:5000/api/email/grouped?email=${emailToUse}`)
             .then(res => res.json())
             .then(data => {
                 setGroupedEmails(data);
-                // Expand sections with emails by default
-                const initialExpanded = new Set();
-                Object.entries(data).forEach(([skill, emails]) => {
-                    if (emails.length > 0) initialExpanded.add(skill);
-                });
-                setExpandedSections(initialExpanded);
+                expandSections(data);
                 setLoading(false);
+                sessionStorage.setItem(CACHE_KEY, JSON.stringify({
+                    data,
+                    timestamp: Date.now()
+                }));
             })
             .catch(err => {
                 console.error("Failed to fetch emails", err);
                 setLoading(false);
             });
-    }, [emailToUse]);
+    };
+
+    const expandSections = (data) => {
+        const initialExpanded = new Set();
+        Object.entries(data).forEach(([skill, emails]) => {
+            if (emails.length > 0) initialExpanded.add(skill);
+        });
+        setExpandedSections(initialExpanded);
+    };
+
+    const handleRefresh = () => {
+        sessionStorage.removeItem(CACHE_KEY);
+        fetchEmails();
+    };
 
     const toggleSection = (skill) => {
         const newExpanded = new Set(expandedSections);
@@ -77,6 +115,14 @@ export default function Emails() {
                     <h1 className="text-3xl font-bold text-white">Inbox Spaces</h1>
                     <p className="text-gray-400 mt-1">Emails categorized by detected skills.</p>
                 </div>
+                <button
+                    onClick={handleRefresh}
+                    disabled={loading}
+                    className="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-gray-300 hover:text-white transition-colors"
+                    title="Refresh Emails"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`lucide lucide-refresh-cw ${loading ? 'animate-spin' : ''}`}><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" /><path d="M3 21v-5h5" /></svg>
+                </button>
             </div>
 
             {loading ? (

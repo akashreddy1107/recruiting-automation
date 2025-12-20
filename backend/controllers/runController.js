@@ -20,35 +20,45 @@ export const startRun = async (req, res) => {
         const newCandidates = [];
 
         // 2. Process Each Email
-        for (const msg of messages) {
-            const fullMsg = await gmailService.getMessage(email, msg.id);
-            const candidatesFromEmail = await gmailService.parseCandidateFromEmail(email, fullMsg);
+        // 2. Process Each Email in Parallel
+        // Chunking promises to avoid hitting API rate limits if many emails
+        const chunkSize = 5;
+        for (let i = 0; i < messages.length; i += chunkSize) {
+            const chunk = messages.slice(i, i + chunkSize);
+            await Promise.all(chunk.map(async (msg) => {
+                try {
+                    const fullMsg = await gmailService.getMessage(email, msg.id);
+                    const candidatesFromEmail = await gmailService.parseCandidateFromEmail(email, fullMsg);
 
-            if (!candidatesFromEmail || candidatesFromEmail.length === 0) {
-                console.log(`Skipping irrelevant email: ${msg.id}`);
-                continue;
-            }
+                    if (!candidatesFromEmail || candidatesFromEmail.length === 0) {
+                        return;
+                    }
 
-            for (const candidateData of candidatesFromEmail) {
-                // 3. Score Candidate with Custom Criteria
-                const criteria = {
-                    skills: skills ? (Array.isArray(skills) ? skills : skills.split(',')) : undefined,
-                    experience: experience ? parseInt(experience) : undefined,
-                    visa: visa ? (Array.isArray(visa) ? visa : visa.split(',')) : undefined
-                };
+                    for (const candidateData of candidatesFromEmail) {
+                        // 3. Score Candidate with Custom Criteria
+                        const criteria = {
+                            skills: skills ? (Array.isArray(skills) ? skills : skills.split(',')) : undefined,
+                            experience: experience ? parseInt(experience) : undefined,
+                            visa: visa ? (Array.isArray(visa) ? visa : visa.split(',')) : undefined
+                        };
 
-                const score = scoringService.calculateScore(candidateData, criteria);
+                        const score = scoringService.calculateScore(candidateData, criteria);
 
-                const candidate = {
-                    id: uuidv4(),
-                    ...candidateData,
-                    score,
-                    status: 'New',
-                    runId: new Date().getTime().toString()
-                };
+                        const candidate = {
+                            id: uuidv4(),
+                            ...candidateData,
+                            score,
+                            status: 'New',
+                            // Normalize runId to current minute to prevent "double heading" bug
+                            runId: new Date().setSeconds(0, 0).toString()
+                        };
 
-                newCandidates.push(candidate);
-            }
+                        newCandidates.push(candidate);
+                    }
+                } catch (err) {
+                    console.error(`Error processing msg ${msg.id}:`, err);
+                }
+            }));
         }
 
         // 4. Save to DB

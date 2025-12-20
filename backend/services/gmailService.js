@@ -36,7 +36,7 @@ export const listUnreadMessages = async (email, startDate) => {
     const res = await gmail.users.messages.list({
         userId: 'me',
         q: q,
-        maxResults: 20 // Limit for prototype
+        maxResults: 100 // Limit increased to capture more candidates
     });
     return res.data.messages || [];
 };
@@ -150,7 +150,8 @@ const extractDetails = (text) => {
         'contractor', 'consultant', 'employee', 'employer', 'client', 'project', 'team', 'member',
         'operating', 'system', 'linux', 'windows', 'macos', 'database', 'server', 'application', 'software', 'technology',
         'narrative', 'description', 'details', 'info', 'information', 'personal', 'statement', 'tools', 'etl', 'dashboard', 'created',
-        'managed', 'developed', 'designed', 'implemented', 'orchestrated', 'holder', 'studio', 'intelligence', 'development', 'business'
+        'managed', 'developed', 'designed', 'implemented', 'orchestrated', 'holder', 'studio', 'intelligence', 'development', 'business',
+        'installation', 'installed', 'install', 'hands', 'access', 'accesss', 'microsoft', 'page'
     ];
 
     const companySuffixes = ['limited', 'ltd', 'inc', 'corp', 'corporation', 'llc', 'pvt', 'group', 'services', 'solutions', 'systems', 'technologies', 'consulting'];
@@ -186,7 +187,7 @@ const extractDetails = (text) => {
 
         // 2. Fatal Checks (Immediate Disqualifiers)
         if (/\d/.test(line)) continue;
-        if (/[@.www]/.test(lower)) continue;
+        if (line.includes('@') || lower.includes('www.') || lower.includes('http')) continue;
         if (blockedTerms.some(t => lower.includes(t))) continue;
         if (roles.some(r => lower.includes(r.toLowerCase()))) continue;
         if (companySuffixes.some(s => lower.endsWith(' ' + s) || lower.includes(' ' + s + ' '))) continue;
@@ -234,7 +235,7 @@ const extractDetails = (text) => {
     return { phone, linkedin, github, education, jobRole, certifications, candidateEmail, candidateName };
 };
 
-export const parseCandidateFromEmail = async (email, message) => {
+export const parseCandidateFromEmail = async (email, message, options = {}) => {
     const headers = message.payload.headers;
     const subject = headers.find(h => h.name === 'Subject')?.value || '';
     const from = headers.find(h => h.name === 'From')?.value || '';
@@ -279,8 +280,11 @@ export const parseCandidateFromEmail = async (email, message) => {
                     continue;
                 }
 
-                // Upload to Drive
-                const resumeLink = await driveService.uploadResume(email, part.filename, part.mimeType, buffer);
+                // Upload to Drive (Skip if requested for speed/preview)
+                let resumeLink = 'N/A';
+                if (!options.skipUpload) {
+                    resumeLink = await driveService.uploadResume(email, part.filename, part.mimeType, buffer);
+                }
 
                 // Extract Details
                 const details = extractDetails(text);
@@ -302,7 +306,7 @@ export const parseCandidateFromEmail = async (email, message) => {
 
                 candidates.push({
                     id: message.id + '_' + part.partId, // Unique ID per attachment
-                    name: details.candidateName || "N/A", // ONLY extracted name
+                    name: details.candidateName || senderName || senderEmail || "N/A", // ONLY extracted name, fallback to senderName or email
                     email: details.candidateEmail || "N/A", // ONLY extracted email
                     phone: details.phone,
                     linkedin: details.linkedin,
@@ -323,54 +327,9 @@ export const parseCandidateFromEmail = async (email, message) => {
         }
     }
 
-    // Fallback if no attachments found
+    // Fallback if no attachments found: REMOVED as per user request (only resume attachments allowed)
     if (!hasAttachments) {
-        // Simple body extraction (text/plain)
-        let body = '';
-        if (message.payload.parts) {
-            const part = message.payload.parts.find(p => p.mimeType === 'text/plain');
-            if (part && part.body.data) {
-                body = Buffer.from(part.body.data, 'base64').toString('utf-8');
-            }
-        } else if (message.payload.body.data) {
-            body = Buffer.from(message.payload.body.data, 'base64').toString('utf-8');
-        }
-
-        if (body) {
-            const details = extractDetails(body);
-
-            const foundSkills = new Set();
-            ALL_SKILLS.forEach(skill => {
-                const escapedSkill = skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                if (new RegExp(`(\\b|^)${escapedSkill}(\\b|$)`, 'i').test(body)) {
-                    foundSkills.add(skill);
-                }
-            });
-
-            const experienceMatch = body.match(/(\d+)\+?\s*years?/i);
-            const experience = experienceMatch ? parseInt(experienceMatch[1]) : 0;
-            const visaStatus = VISA_KEYWORDS.find(v => new RegExp(`\\b${v}\\b`, 'i').test(body)) || 'Unknown';
-
-            candidates.push({
-                id: message.id,
-                name: details.candidateName || "N/A",
-                email: details.candidateEmail || "N/A",
-                phone: details.phone,
-                linkedin: details.linkedin,
-                github: details.github,
-                education: details.education,
-                jobRole: details.jobRole,
-                certifications: details.certifications,
-                skills: Array.from(foundSkills),
-                experience,
-                visaStatus,
-                date,
-                resumeLink: 'N/A',
-                resumeType: 'Email Body',
-                subject,
-                originalText: body
-            });
-        }
+        console.log(`Skipping message ${message.id} - No resume attachment found.`);
     }
 
     return candidates;
@@ -427,16 +386,11 @@ export const getGroupedEmails = async (email) => {
     skillSet.forEach(skill => {
         grouped[skill] = [];
     });
-    grouped['Other'] = [];
 
-    for (const msg of messages) {
+    const promises = messages.map(async (msg) => {
         try {
             const rawMsg = await getMessage(email, msg.id);
-            const candidates = await parseCandidateFromEmail(email, rawMsg);
-
-            // Note: parseCandidateFromEmail returns an array of candidates (usually 1 per email/attachment)
-            // For the email view, we want to show the EMAIL, but categorized by the skills found in it.
-            // If multiple candidates are in one email, we'll just take the union of skills.
+            const candidates = await parseCandidateFromEmail(email, rawMsg, { skipUpload: true });
 
             if (candidates.length > 0) {
                 const skillsInEmail = new Set();
@@ -448,29 +402,23 @@ export const getGroupedEmails = async (email) => {
                     subject: candidates[0].subject,
                     from: candidates[0].name,
                     date: candidates[0].date,
-                    // Store the first candidate's ID for "reading" or just use message ID
                     messageId: msg.id,
-                    body: candidates[0].originalText || rawMsg.snippet // Use full text if available
+                    body: candidates[0].originalText || rawMsg.snippet
                 };
 
-                let assigned = false;
                 skillsInEmail.forEach(skill => {
-                    // Normalize skill casing for the key
                     const key = [...skillSet].find(s => s.toLowerCase() === skill.toLowerCase());
                     if (key) {
                         grouped[key].push(emailData);
-                        assigned = true;
                     }
                 });
-
-                if (!assigned) {
-                    grouped['Other'].push(emailData);
-                }
             }
         } catch (err) {
             console.error(`Error processing message ${msg.id} for grouping:`, err);
         }
-    }
+    });
+
+    await Promise.all(promises);
 
     // Remove empty groups or leave them (User asked for "create a section for python where...").
     // I'll filter out empty groups to keep UI clean, or keep them if they want to see all potentials. 

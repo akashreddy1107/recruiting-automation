@@ -16,16 +16,18 @@ export default function History() {
 
             <div className="space-y-4">
                 {runs.map((run) => (
-                    <div key={run.id} className="glass-card p-6 rounded-2xl flex items-center justify-between">
+                    <div key={run.id} className="glass-card p-6 rounded-2xl flex items-center justify-between border border-white/5 hover:border-accent-blue/30 transition-all">
                         <div className="flex items-center gap-4">
-                            <div className={`p-3 rounded-full ${run.status === 'Success' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                            <div className={`p-3 rounded-full ${run.status === 'Success' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
                                 {run.status === 'Success' ? <CheckCircle size={24} /> : <XCircle size={24} />}
                             </div>
                             <div>
-                                <h3 className="font-bold text-slate-900 dark:text-white">
-                                    {new Date(run.date).toLocaleDateString()} at {new Date(run.date).toLocaleTimeString()}
+                                <h3 className="font-bold text-white text-lg">
+                                    {new Date(run.date).toLocaleDateString(undefined, { dateStyle: 'long' })}
+                                    <span className="text-gray-500 mx-2">at</span>
+                                    {new Date(run.date).toLocaleTimeString(undefined, { timeStyle: 'short' })}
                                 </h3>
-                                <p className="text-slate-500 text-sm">Found {run.candidatesFound} candidates</p>
+                                <p className="text-gray-400 text-sm mt-1">Found <span className="text-accent-blue font-bold">{run.candidatesFound}</span> candidates</p>
                             </div>
                         </div>
 
@@ -34,7 +36,7 @@ export default function History() {
                                 href={run.sheetUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+                                className="flex items-center gap-2 px-4 py-2 bg-green-600/20 text-green-400 border border-green-500/50 hover:bg-green-600 hover:text-white rounded-xl transition-all font-medium"
                             >
                                 <FileSpreadsheet size={18} />
                                 View Sheet

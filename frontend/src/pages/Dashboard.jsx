@@ -3,17 +3,20 @@ import { Users, FileText, CheckCircle, Clock, Play } from 'lucide-react';
 import StatsCard from '../components/StatsCard';
 import RunConfigurationModal from '../components/RunConfigurationModal';
 import { useAuth } from '../contexts/AuthContext';
+import { useAutomation } from '../contexts/AutomationContext';
 import { motion } from 'framer-motion';
 
 export default function Dashboard() {
     const { user } = useAuth();
+    const { runAutomation, isRunning } = useAutomation();
     const [stats, setStats] = useState({
         totalCandidates: 0,
         totalRuns: 0,
         avgScore: 0,
         lastRun: null
     });
-    const [loading, setLoading] = useState(false);
+    // Removed local 'loading' state for run, but kept for stats if needed? 
+    // Actually we can use isRunning to disable button.
     const [isRunModalOpen, setIsRunModalOpen] = useState(false);
 
     const fetchStats = async () => {
@@ -43,34 +46,14 @@ export default function Dashboard() {
 
     useEffect(() => {
         fetchStats();
-    }, []);
+    }, [isRunning]); // Re-fetch stats when isRunning changes (e.g. finishes)
 
     const handleRunAutomation = async (config) => {
         setIsRunModalOpen(false);
-        setLoading(true);
-        try {
-            const res = await fetch('http://localhost:5000/api/runs', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    email: user.email,
-                    ...config
-                })
-            });
-
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Run failed');
-
-            alert(`Run Complete! Found ${data.candidates.length} candidates.`);
-            fetchStats();
-        } catch (error) {
-            console.error('Run failed:', error);
-            alert(`Run Failed: ${error.message || 'Unknown error'}`);
-        } finally {
-            setLoading(false);
-        }
+        // Call global automation
+        await runAutomation(config);
+        // Stats will refresh automatically due to useEffect dependency or we can call it here
+        fetchStats();
     };
 
     const container = {
@@ -105,11 +88,11 @@ export default function Dashboard() {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => setIsRunModalOpen(true)}
-                    disabled={loading}
+                    disabled={isRunning}
                     className="gemini-button gemini-button-primary disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    {loading ? <Clock className="animate-spin" /> : <Play size={20} fill="currentColor" />}
-                    {loading ? 'Running...' : 'Run Automation'}
+                    {isRunning ? <Clock className="animate-spin" /> : <Play size={20} fill="currentColor" />}
+                    {isRunning ? 'Running...' : 'Run Automation'}
                 </motion.button>
             </div>
 
