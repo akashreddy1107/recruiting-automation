@@ -246,7 +246,10 @@ export const parseCandidateFromEmail = async (email, message, options = {}) => {
     const senderName = from.split('<')[0].trim().replace(/"/g, '');
 
     // Filter blocklist
-    const blocklist = ['no-reply', 'newsletter', 'notifications', 'update', 'promotions'];
+    // Use options.blocklist if provided, otherwise default
+    const defaultBlocklist = ['no-reply', 'newsletter', 'notifications', 'update', 'promotions'];
+    const blocklist = options.blocklist ? options.blocklist : defaultBlocklist;
+
     if (blocklist.some(term => senderEmail.includes(term) || senderName.toLowerCase().includes(term))) {
         return [];
     }
@@ -374,54 +377,77 @@ export const sendEmail = async (email, to, subject, body) => {
 };
 
 export const getGroupedEmails = async (email) => {
-    // 1. Fetch recent job-related emails
-    // Reuse listUnreadMessages logic (which is actually "recent job emails")
-    const messages = await listUnreadMessages(email);
+    await db.read();
 
-    // 2. Parse details from each email
-    const grouped = {};
-    const skillSet = new Set(['React', 'Node', 'Python', 'Java', 'AWS', 'Docker', 'Kubernetes', 'SQL', 'NoSQL', 'TypeScript']);
+    try {
+        // 1. Fetch recent job-related emails
+        const messages = await listUnreadMessages(email);
 
-    // Initialize groups for known skills
-    skillSet.forEach(skill => {
-        grouped[skill] = [];
-    });
+        // 2. Parse details from each email
+        const grouped = {};
+        const skillSet = new Set(['React', 'Node', 'Python', 'Java', 'AWS', 'Docker', 'Kubernetes', 'SQL', 'NoSQL', 'TypeScript']);
 
-    const promises = messages.map(async (msg) => {
-        try {
-            const rawMsg = await getMessage(email, msg.id);
-            const candidates = await parseCandidateFromEmail(email, rawMsg, { skipUpload: true });
+        // Initialize groups for known skills
+        skillSet.forEach(skill => {
+            grouped[skill] = [];
+        });
 
-            if (candidates.length > 0) {
-                const skillsInEmail = new Set();
-                candidates.forEach(c => c.skills.forEach(s => skillsInEmail.add(s)));
+        const promises = messages.map(async (msg) => {
+            try {
+                const rawMsg = await getMessage(email, msg.id);
+                const candidates = await parseCandidateFromEmail(email, rawMsg, { skipUpload: true });
 
-                const emailData = {
-                    id: msg.id,
-                    snippet: rawMsg.snippet,
-                    subject: candidates[0].subject,
-                    from: candidates[0].name,
-                    date: candidates[0].date,
-                    messageId: msg.id,
-                    body: candidates[0].originalText || rawMsg.snippet
-                };
+                if (candidates.length > 0) {
+                    const skillsInEmail = new Set();
+                    candidates.forEach(c => c.skills.forEach(s => skillsInEmail.add(s)));
 
-                skillsInEmail.forEach(skill => {
-                    const key = [...skillSet].find(s => s.toLowerCase() === skill.toLowerCase());
-                    if (key) {
-                        grouped[key].push(emailData);
-                    }
-                });
+                    const emailData = {
+                        id: msg.id,
+                        snippet: rawMsg.snippet,
+                        subject: candidates[0].subject,
+                        from: candidates[0].name,
+                        date: candidates[0].date,
+                        messageId: msg.id,
+                        body: candidates[0].originalText || rawMsg.snippet
+                    };
+
+                    skillsInEmail.forEach(skill => {
+                        const key = [...skillSet].find(s => s.toLowerCase() === skill.toLowerCase());
+                        if (key) {
+                            grouped[key].push(emailData);
+                        }
+                    });
+                }
+            } catch (err) {
+                console.error(`Error processing message ${msg.id} for grouping:`, err);
             }
-        } catch (err) {
-            console.error(`Error processing message ${msg.id} for grouping:`, err);
+        });
+
+        await Promise.all(promises);
+
+        // Save to Cache
+        if (!db.data.emailCache) db.data.emailCache = {};
+        db.data.emailCache[email] = {
+            data: grouped,
+            timestamp: new Date().toISOString()
+        };
+        await db.write();
+
+        return grouped;
+
+    } catch (error) {
+        console.error("Failed to fetch live emails:", error);
+
+        // Return cached data if available
+        if (db.data.emailCache && db.data.emailCache[email]) {
+            console.log("Returning cached emails for", email);
+            return {
+                ...db.data.emailCache[email].data,
+                _isCached: true,
+                _timestamp: db.data.emailCache[email].timestamp
+            };
         }
-    });
 
-    await Promise.all(promises);
-
-    // Remove empty groups or leave them (User asked for "create a section for python where...").
-    // I'll filter out empty groups to keep UI clean, or keep them if they want to see all potentials. 
-    // Let's keep them if they have content, but maybe we just return the whole object and let frontend decide.
-    return grouped;
+        throw error;
+    }
 };

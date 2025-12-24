@@ -7,9 +7,12 @@ export default {
   theme: {
     extend: {
       colors: {
-        obsidian: '#050505',
-        charcoal: '#0F0F0F',
-        graphite: '#1A1A1A',
+        obsidian: 'rgb(var(--c-obsidian) / <alpha-value>)',
+        charcoal: 'rgb(var(--c-charcoal) / <alpha-value>)',
+        graphite: 'rgb(var(--c-graphite) / <alpha-value>)',
+        primary: 'rgb(var(--c-text-primary) / <alpha-value>)',
+        secondary: 'rgb(var(--c-text-secondary) / <alpha-value>)',
+        border: 'rgb(var(--c-border) / <alpha-value>)',
         'accent-blue': '#4285F4',
         'accent-purple': '#A142F4',
       },

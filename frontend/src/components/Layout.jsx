@@ -20,7 +20,7 @@ export default function Layout() {
     ];
 
     return (
-        <div className="min-h-screen bg-obsidian text-white flex overflow-hidden font-sans">
+        <div className="min-h-screen bg-obsidian text-primary flex overflow-hidden font-sans">
             {/* Sidebar */}
             <motion.aside
                 initial={false}
@@ -55,7 +55,7 @@ export default function Layout() {
                                 to={item.path}
                                 className={clsx(
                                     "flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-300 group relative overflow-hidden",
-                                    isActive ? "text-white bg-white/10 shadow-lg shadow-accent-blue/5" : "text-gray-400 hover:text-white hover:bg-white/5"
+                                    isActive ? "text-primary bg-primary/10 shadow-lg shadow-accent-blue/5" : "text-secondary hover:text-primary hover:bg-primary/5"
                                 )}
                             >
                                 {isActive && (
@@ -66,7 +66,7 @@ export default function Layout() {
                                         transition={{ type: "spring", stiffness: 300, damping: 30 }}
                                     />
                                 )}
-                                <Icon size={22} className={clsx("relative z-10", isActive ? "text-accent-blue" : "group-hover:text-white transition-colors")} />
+                                <Icon size={22} className={clsx("relative z-10", isActive ? "text-accent-blue" : "group-hover:text-primary transition-colors")} />
                                 {isSidebarOpen && (
                                     <motion.span
                                         initial={{ opacity: 0, x: -10 }}
@@ -90,7 +90,7 @@ export default function Layout() {
                         {isSidebarOpen && (
                             <div className="flex-1 min-w-0">
                                 <p className="text-sm font-medium truncate">{user?.email}</p>
-                                <button onClick={logout} className="text-xs text-gray-400 hover:text-white flex items-center gap-1 mt-0.5">
+                                <button onClick={logout} className="text-xs text-secondary hover:text-primary flex items-center gap-1 mt-0.5">
                                     <LogOut size={12} /> Sign out
                                 </button>
                             </div>

@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AutomationProvider } from './contexts/AutomationContext';
@@ -9,6 +10,7 @@ import History from './pages/History';
 import Settings from './pages/Settings';
 import PlaceholderPage from './pages/PlaceholderPage';
 import Emails from './pages/Emails';
+import Jobs from './pages/Jobs';
 
 // Placeholder Pages
 const Login = () => {
@@ -29,7 +31,7 @@ const Login = () => {
                     <h1 className="text-5xl font-bold bg-gradient-to-r from-accent-blue to-accent-purple bg-clip-text text-transparent tracking-tight">
                         RecruitAI
                     </h1>
-                    <p className="text-gray-400 text-lg">
+                    <p className="text-secondary text-lg">
                         Next-gen recruiting automation.
                     </p>
                 </div>
@@ -52,6 +54,20 @@ const PrivateRoute = ({ children }) => {
 };
 
 function App() {
+    // Apply theme on initial load
+    useEffect(() => {
+        fetch('http://localhost:5000/api/settings')
+            .then(res => res.json())
+            .then(data => {
+                if (data.theme === 'dark') {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                }
+            })
+            .catch(err => console.error('Failed to load theme', err));
+    }, []);
+
     return (
         <AuthProvider>
             <AutomationProvider>
@@ -62,7 +78,7 @@ function App() {
                             <Route index element={<Navigate to="/dashboard" />} />
                             <Route path="dashboard" element={<Dashboard />} />
                             <Route path="candidates" element={<Candidates />} />
-                            <Route path="jobs" element={<PlaceholderPage />} />
+                            <Route path="jobs" element={<Jobs />} />
                             <Route path="matching" element={<PlaceholderPage />} />
                             <Route path="emails" element={<Emails />} />
                             <Route path="history" element={<History />} />

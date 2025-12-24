@@ -80,8 +80,8 @@ export default function Dashboard() {
         >
             <div className="flex items-center justify-between">
                 <motion.div variants={item}>
-                    <h1 className="text-4xl font-bold text-white tracking-tight">Dashboard</h1>
-                    <p className="text-gray-400 mt-2 text-lg">Welcome back, here's what's happening.</p>
+                    <h1 className="text-4xl font-bold text-primary tracking-tight">Dashboard</h1>
+                    <p className="text-secondary mt-2 text-lg">Welcome back, here's what's happening.</p>
                 </motion.div>
                 <motion.button
                     variants={item}
@@ -110,7 +110,7 @@ export default function Dashboard() {
                     className="gemini-card relative overflow-hidden group"
                 >
                     <div className="absolute top-0 right-0 w-32 h-32 bg-accent-blue/10 rounded-full blur-3xl -mr-16 -mt-16 transition-all duration-500 group-hover:bg-accent-blue/20" />
-                    <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                    <h3 className="text-xl font-bold text-primary mb-4 flex items-center gap-2">
                         <span className="p-2 rounded-lg bg-accent-blue/10 text-accent-blue"><Clock size={20} /></span>
                         Recent Emails
                     </h3>
@@ -122,11 +122,11 @@ export default function Dashboard() {
                                         JD
                                     </div>
                                     <div>
-                                        <p className="text-sm font-medium text-white">John Doe</p>
-                                        <p className="text-xs text-gray-400">Interview Invitation</p>
+                                        <p className="text-sm font-medium text-primary">John Doe</p>
+                                        <p className="text-xs text-secondary">Interview Invitation</p>
                                     </div>
                                 </div>
-                                <span className="text-xs text-gray-500">2h ago</span>
+                                <span className="text-xs text-secondary">2h ago</span>
                             </div>
                         ))}
                     </div>
@@ -138,7 +138,7 @@ export default function Dashboard() {
                     className="gemini-card relative overflow-hidden group"
                 >
                     <div className="absolute top-0 right-0 w-32 h-32 bg-accent-purple/10 rounded-full blur-3xl -mr-16 -mt-16 transition-all duration-500 group-hover:bg-accent-purple/20" />
-                    <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                    <h3 className="text-xl font-bold text-primary mb-4 flex items-center gap-2">
                         <span className="p-2 rounded-lg bg-accent-purple/10 text-accent-purple"><CheckCircle size={20} /></span>
                         Top Candidates
                     </h3>
@@ -150,8 +150,8 @@ export default function Dashboard() {
                                         {candidate.name.charAt(0)}
                                     </div>
                                     <div>
-                                        <p className="text-sm font-medium text-white">{candidate.name}</p>
-                                        <p className="text-xs text-gray-400">Score: {candidate.score.total}/100</p>
+                                        <p className="text-sm font-medium text-primary">{candidate.name}</p>
+                                        <p className="text-xs text-secondary">Score: {candidate.score.total}/100</p>
                                     </div>
                                 </div>
                                 <button className="px-3 py-1 rounded-full bg-accent-purple/10 text-accent-purple text-xs font-medium hover:bg-accent-purple/20 transition-colors">
@@ -160,7 +160,7 @@ export default function Dashboard() {
                             </div>
                         ))}
                         {(!stats.topCandidates || stats.topCandidates.length === 0) && (
-                            <p className="text-gray-400 text-sm">No candidates found yet.</p>
+                            <p className="text-secondary text-sm">No candidates found yet.</p>
                         )}
                     </div>
                 </motion.div>

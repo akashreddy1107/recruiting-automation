@@ -21,8 +21,8 @@ export default function StatsCard({ title, value, icon: Icon, trend, color, dela
                     </span>
                 )}
             </div>
-            <h3 className="text-gray-400 text-sm font-medium">{title}</h3>
-            <p className="text-3xl font-bold text-white mt-2 tracking-tight">{value}</p>
+            <h3 className="text-secondary text-sm font-medium">{title}</h3>
+            <p className="text-3xl font-bold text-primary mt-2 tracking-tight">{value}</p>
         </motion.div>
     );
 }

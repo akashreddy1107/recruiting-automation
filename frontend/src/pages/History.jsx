@@ -12,7 +12,7 @@ export default function History() {
 
     return (
         <div className="space-y-6">
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Run History</h1>
+            <h1 className="text-3xl font-bold text-primary">Run History</h1>
 
             <div className="space-y-4">
                 {runs.map((run) => (
@@ -22,12 +22,12 @@ export default function History() {
                                 {run.status === 'Success' ? <CheckCircle size={24} /> : <XCircle size={24} />}
                             </div>
                             <div>
-                                <h3 className="font-bold text-white text-lg">
+                                <h3 className="font-bold text-primary text-lg">
                                     {new Date(run.date).toLocaleDateString(undefined, { dateStyle: 'long' })}
-                                    <span className="text-gray-500 mx-2">at</span>
+                                    <span className="text-secondary mx-2">at</span>
                                     {new Date(run.date).toLocaleTimeString(undefined, { timeStyle: 'short' })}
                                 </h3>
-                                <p className="text-gray-400 text-sm mt-1">Found <span className="text-accent-blue font-bold">{run.candidatesFound}</span> candidates</p>
+                                <p className="text-secondary text-sm mt-1">Found <span className="text-accent-blue font-bold">{run.candidatesFound}</span> candidates</p>
                             </div>
                         </div>
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Play, Calendar, Briefcase, Award, Globe } from 'lucide-react';
 import clsx from 'clsx';
@@ -10,6 +10,25 @@ export default function RunConfigurationModal({ isOpen, onClose, onRun }) {
         experience: 2,
         visa: 'Citizen, Green Card'
     });
+
+    // Fetch defaults when modal opens
+    useEffect(() => {
+        if (isOpen) {
+            fetch('http://localhost:5000/api/settings')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.jobDefaults) {
+                        setConfig(prev => ({
+                            ...prev,
+                            skills: data.jobDefaults.skills,
+                            experience: data.jobDefaults.experience,
+                            visa: data.jobDefaults.visa
+                        }));
+                    }
+                })
+                .catch(err => console.error('Failed to load defaults', err));
+        }
+    }, [isOpen]);
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -39,8 +58,8 @@ export default function RunConfigurationModal({ isOpen, onClose, onRun }) {
                     >
                         <div className="gemini-card w-full max-w-lg pointer-events-auto bg-charcoal border border-white/10 shadow-2xl">
                             <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-2xl font-bold text-white">Configure Run</h2>
-                                <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-white">
+                                <h2 className="text-2xl font-bold text-primary">Configure Run</h2>
+                                <button onClick={onClose} className="p-2 hover:bg-primary/10 rounded-lg transition-colors text-secondary hover:text-primary">
                                     <X size={20} />
                                 </button>
                             </div>
@@ -48,7 +67,7 @@ export default function RunConfigurationModal({ isOpen, onClose, onRun }) {
                             <form onSubmit={handleSubmit} className="space-y-6">
                                 {/* Start Date */}
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                                    <label className="text-sm font-medium text-secondary flex items-center gap-2">
                                         <Calendar size={16} className="text-accent-blue" />
                                         Read Emails From
                                     </label>
@@ -63,7 +82,7 @@ export default function RunConfigurationModal({ isOpen, onClose, onRun }) {
 
                                 {/* Skills */}
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                                    <label className="text-sm font-medium text-secondary flex items-center gap-2">
                                         <Award size={16} className="text-accent-purple" />
                                         Required Skills (comma separated)
                                     </label>
@@ -78,7 +97,7 @@ export default function RunConfigurationModal({ isOpen, onClose, onRun }) {
 
                                 {/* Experience */}
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                                    <label className="text-sm font-medium text-secondary flex items-center gap-2">
                                         <Briefcase size={16} className="text-green-400" />
                                         Minimum Experience (Years)
                                     </label>
@@ -93,7 +112,7 @@ export default function RunConfigurationModal({ isOpen, onClose, onRun }) {
 
                                 {/* Visa */}
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                                    <label className="text-sm font-medium text-secondary flex items-center gap-2">
                                         <Globe size={16} className="text-orange-400" />
                                         Accepted Visa Status (comma separated)
                                     </label>

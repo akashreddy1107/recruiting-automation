@@ -8,11 +8,11 @@ const __dirname = path.dirname(__filename);
 
 const file = path.join(__dirname, 'db.json');
 const adapter = new JSONFile(file);
-const db = new Low(adapter, { users: [], candidates: [], runs: [], settings: {} });
+const db = new Low(adapter, { users: [], candidates: [], runs: [], settings: {}, jobs: [], emailCache: {} });
 
 async function initDB() {
     await db.read();
-    db.data ||= { users: [], candidates: [], runs: [], settings: {} };
+    db.data ||= { users: [], candidates: [], runs: [], settings: {}, jobs: [], emailCache: {} };
     await db.write();
 }
 

@@ -51,3 +51,18 @@ The frontend is the user interface (Dashboard).
 -   **Exports**:
     -   **Google Sheets**: Creates a sheet with candidate details.
     -   **Google Drive**: Uploads PDF resumes and links them in the sheet.
+
+## 🔄 How to Resume Work (After Deleting node_modules)
+If you deleted `node_modules` to share the project, follow these steps to restore everything:
+
+1.  **Open Terminal in `backend/`** and run:
+    ```bash
+    npm install
+    ```
+2.  **Open Terminal in `frontend/`** and run:
+    ```bash
+    npm install
+    ```
+3.  **Start the App** normally (`npm start` in backend, `npm run dev` in frontend).
+4.  **Login**: If you deleted `token.json`, the backend terminal will give you a login URL. Open it, log in, and paste the code back into the terminal.
+
