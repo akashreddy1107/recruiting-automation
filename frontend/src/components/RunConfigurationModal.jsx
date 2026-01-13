@@ -6,7 +6,7 @@ import clsx from 'clsx';
 
 export default function RunConfigurationModal({ isOpen, onClose, onRun }) {
     const [config, setConfig] = useState({
-        startDate: new Date().toISOString().split('T')[0],
+        startDate: '2024-01-01',
         skills: 'React, Node, JavaScript',
         experience: 2,
         visa: 'Citizen, Green Card'
@@ -35,8 +35,8 @@ export default function RunConfigurationModal({ isOpen, onClose, onRun }) {
         e.preventDefault();
         onRun({
             ...config,
-            skills: config.skills.split(',').map(s => s.trim()),
-            visa: config.visa.split(',').map(v => v.trim())
+            skills: (config.skills || '').split(',').map(s => s.trim()).filter(Boolean),
+            visa: (config.visa || '').split(',').map(v => v.trim()).filter(Boolean)
         });
     };
 

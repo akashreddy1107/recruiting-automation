@@ -15,7 +15,8 @@ export const googleCallback = async (req, res) => {
 
         // Redirect to frontend with some session indicator (simplified for this prototype)
         // In a real app, we'd set a secure cookie or return a JWT
-        res.redirect(`http://localhost:5173/dashboard?email=${userInfo.email}`);
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        res.redirect(`${frontendUrl}/dashboard?email=${userInfo.email}`);
     } catch (error) {
         console.error('Auth Error:', error);
         res.status(500).send('Authentication failed');

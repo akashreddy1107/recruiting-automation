@@ -9,7 +9,7 @@ import { motion } from 'framer-motion';
 
 export default function Dashboard() {
     const { user } = useAuth();
-    const { runAutomation, isRunning } = useAutomation();
+    const { runAutomation, isRunning, lastResult } = useAutomation();
     const [stats, setStats] = useState({
         totalCandidates: 0,
         totalRuns: 0,
@@ -96,6 +96,26 @@ export default function Dashboard() {
                     {isRunning ? 'Running...' : 'Run Automation'}
                 </motion.button>
             </div>
+
+            {/* Success Notification */}
+            {lastResult && !isRunning && (
+                <motion.div
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-4 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 flex items-center justify-between"
+                >
+                    <div className="flex items-center gap-3">
+                        <CheckCircle size={24} />
+                        <div>
+                            <p className="font-bold">Automation Complete!</p>
+                            <p className="text-sm opacity-90">{lastResult.message}</p>
+                        </div>
+                    </div>
+                    <button onClick={() => window.location.reload()} className="px-3 py-1 bg-green-500/20 hover:bg-green-500/30 rounded-lg text-sm transition-colors">
+                        Refresh View
+                    </button>
+                </motion.div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatsCard title="Total Candidates" value={stats.totalCandidates} icon={Users} color="text-accent-blue" delay={0.1} />

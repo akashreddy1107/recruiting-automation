@@ -247,7 +247,7 @@ export const parseCandidateFromEmail = async (email, message, options = {}) => {
 
     // Filter blocklist
     // Use options.blocklist if provided, otherwise default
-    const defaultBlocklist = ['no-reply', 'newsletter', 'notifications', 'update', 'promotions'];
+    const defaultBlocklist = ['no-reply', 'newsletter', 'notifications', 'update', 'promotions', 'coursera', 'freecodecamp', 'udemy', 'kittl'];
     const blocklist = options.blocklist ? options.blocklist : defaultBlocklist;
 
     if (blocklist.some(term => senderEmail.includes(term) || senderName.toLowerCase().includes(term))) {
@@ -331,6 +331,7 @@ export const parseCandidateFromEmail = async (email, message, options = {}) => {
     }
 
     // Fallback if no attachments found: REMOVED as per user request (only resume attachments allowed)
+    // Fallback if no attachments found: Strict Skip (Restored)
     if (!hasAttachments) {
         console.log(`Skipping message ${message.id} - No resume attachment found.`);
     }
