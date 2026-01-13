@@ -4,14 +4,14 @@ import * as driveService from './driveService.js';
 
 import { google } from 'googleapis';
 import * as authService from './authService.js';
-import db from '../data/db.js';
+import User from '../models/User.js';
+import EmailCache from '../models/EmailCache.js';
 import { ALL_SKILLS, VISA_KEYWORDS } from './skills.js';
 
 // ... existing imports ...
 
 async function getGmailClient(email) {
-    await db.read();
-    const user = db.data.users.find(u => u.email === email);
+    const user = await User.findOne({ email });
     if (!user) throw new Error('User not found');
 
     const client = authService.getClient();
@@ -377,7 +377,6 @@ export const sendEmail = async (email, to, subject, body) => {
 };
 
 export const getGroupedEmails = async (email) => {
-    await db.read();
 
     try {
         // 1. Fetch recent job-related emails
@@ -426,12 +425,14 @@ export const getGroupedEmails = async (email) => {
         await Promise.all(promises);
 
         // Save to Cache
-        if (!db.data.emailCache) db.data.emailCache = {};
-        db.data.emailCache[email] = {
-            data: grouped,
-            timestamp: new Date().toISOString()
-        };
-        await db.write();
+        await EmailCache.findOneAndUpdate(
+            { email },
+            {
+                data: grouped,
+                timestamp: new Date()
+            },
+            { upsert: true }
+        );
 
         return grouped;
 
@@ -439,12 +440,13 @@ export const getGroupedEmails = async (email) => {
         console.error("Failed to fetch live emails:", error);
 
         // Return cached data if available
-        if (db.data.emailCache && db.data.emailCache[email]) {
+        const cached = await EmailCache.findOne({ email });
+        if (cached) {
             console.log("Returning cached emails for", email);
             return {
-                ...db.data.emailCache[email].data,
+                ...cached.data,
                 _isCached: true,
-                _timestamp: db.data.emailCache[email].timestamp
+                _timestamp: cached.timestamp
             };
         }
 

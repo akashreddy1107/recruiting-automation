@@ -1,10 +1,9 @@
 import { google } from 'googleapis';
 import * as authService from './authService.js';
-import db from '../data/db.js';
+import User from '../models/User.js';
 
 async function getSheetsClient(email) {
-    await db.read();
-    const user = db.data.users.find(u => u.email === email);
+    const user = await User.findOne({ email });
     if (!user) throw new Error('User not found');
 
     const client = authService.getClient();

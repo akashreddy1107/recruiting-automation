@@ -2,7 +2,8 @@ import * as gmailService from '../services/gmailService.js';
 import * as scoringService from '../services/scoringService.js';
 import * as sheetsService from '../services/sheetsService.js';
 import * as driveService from '../services/driveService.js';
-import db from '../data/db.js';
+import Run from '../models/Run.js';
+import Candidate from '../models/Candidate.js';
 import { v4 as uuidv4 } from 'uuid';
 
 export const startRun = async (req, res) => {
@@ -44,9 +45,14 @@ export const startRun = async (req, res) => {
 
                         const score = scoringService.calculateScore(candidateData, criteria);
 
+                        // Exclude the ID provided by gmailService (which is based on messageId)
+                        // so we can generate a unique ID for this specific run entry.
+                        // This allows the same candidate to be "found" again in future runs without DB errors.
+                        const { id: _emailId, ...details } = candidateData;
+
                         const candidate = {
                             id: uuidv4(),
-                            ...candidateData,
+                            ...details,
                             score,
                             status: 'New',
                             // Normalize runId to current minute to prevent "double heading" bug
@@ -62,9 +68,10 @@ export const startRun = async (req, res) => {
         }
 
         // 4. Save to DB
-        await db.read();
-        db.data.candidates.push(...newCandidates);
-        await db.write(); // Save candidates immediately
+        // Save candidates in batch
+        if (newCandidates.length > 0) {
+            await Candidate.insertMany(newCandidates);
+        }
 
         // 5. Export to Sheets
         let sheetUrl = null;
@@ -78,7 +85,6 @@ export const startRun = async (req, res) => {
         }
 
         // 6. Log Run
-        await db.read(); // Read again to ensure we have latest state
         const runLog = {
             id: uuidv4(),
             date: new Date().toISOString(),
@@ -86,8 +92,8 @@ export const startRun = async (req, res) => {
             sheetUrl,
             status: 'Success'
         };
-        db.data.runs.push(runLog);
-        await db.write();
+
+        await Run.create(runLog);
 
         res.json({
             message: 'Run completed successfully',
@@ -103,6 +109,10 @@ export const startRun = async (req, res) => {
 };
 
 export const getRuns = async (req, res) => {
-    await db.read();
-    res.json(db.data.runs.sort((a, b) => new Date(b.date) - new Date(a.date)));
+    try {
+        const runs = await Run.find().sort({ date: -1 });
+        res.json(runs);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 };

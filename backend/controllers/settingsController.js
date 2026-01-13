@@ -1,8 +1,7 @@
-import db from '../data/db.js';
+import Settings from '../models/Settings.js';
 
 export const getSettings = async (req, res) => {
     try {
-        await db.read();
         const defaults = {
             theme: 'dark',
             jobDefaults: {
@@ -21,16 +20,24 @@ export const getSettings = async (req, res) => {
             }
         };
 
-        // Merge saved settings with defaults to ensure all keys exist
-        const settings = { ...defaults, ...db.data.settings };
+        // Use a fixed key 'default' for single-tenant app
+        let settings = await Settings.findOne({ key: 'default' });
 
-        // If DB was empty/partial, save the merged full object back
-        if (!db.data.settings || Object.keys(db.data.settings).length === 0) {
-            db.data.settings = settings;
-            await db.write();
+        if (!settings) {
+            settings = await Settings.create({ key: 'default', ...defaults });
         }
 
-        res.json(settings);
+        // Merge defaults with found settings to ensure all fields are present for frontend
+        // This fixes the issue where an existing settings doc (created before schema update) causes crashes
+        const mergedSettings = {
+            ...defaults,
+            ...settings.toObject(),
+            jobDefaults: { ...defaults.jobDefaults, ...settings.jobDefaults },
+            scoring: { ...defaults.scoring, ...settings.scoring },
+            email: { ...defaults.email, ...settings.email }
+        };
+
+        res.json(mergedSettings);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -38,10 +45,12 @@ export const getSettings = async (req, res) => {
 
 export const updateSettings = async (req, res) => {
     try {
-        await db.read();
-        db.data.settings = { ...db.data.settings, ...req.body };
-        await db.write();
-        res.json(db.data.settings);
+        const settings = await Settings.findOneAndUpdate(
+            { key: 'default' },
+            { $set: req.body }, // Only update fields sent
+            { new: true, upsert: true }
+        );
+        res.json(settings);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

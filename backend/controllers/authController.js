@@ -1,5 +1,5 @@
 import * as authService from '../services/authService.js';
-import db from '../data/db.js';
+import User from '../models/User.js';
 
 export const googleAuth = (req, res) => {
     const url = authService.getAuthUrl();
@@ -28,11 +28,12 @@ export const getMe = async (req, res) => {
     const { email } = req.query;
     if (!email) return res.status(401).json({ user: null });
 
-    await db.read();
-    const user = db.data.users.find(u => u.email === email);
+    const user = await User.findOne({ email });
 
     if (user) {
-        const { tokens, ...safeUser } = user;
+        // Convert to object to inspect properties safely if needed, though usually fine
+        const userData = user.toObject();
+        const { tokens, ...safeUser } = userData;
         res.json({ user: safeUser });
     } else {
         res.status(404).json({ user: null });

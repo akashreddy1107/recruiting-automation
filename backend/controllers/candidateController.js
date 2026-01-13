@@ -1,17 +1,24 @@
-import db from '../data/db.js';
+import Candidate from '../models/Candidate.js';
 
 export const getAllCandidates = async (req, res) => {
-    await db.read();
-    res.json(db.data.candidates.sort((a, b) => new Date(b.date) - new Date(a.date)));
+    try {
+        const candidates = await Candidate.find().sort({ date: -1 });
+        res.json(candidates);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 };
 
 export const getCandidate = async (req, res) => {
     const { id } = req.params;
-    await db.read();
-    const candidate = db.data.candidates.find(c => c.id === id);
-    if (candidate) {
-        res.json(candidate);
-    } else {
-        res.status(404).json({ error: 'Candidate not found' });
+    try {
+        const candidate = await Candidate.findOne({ id }); // assuming 'id' field, not _id
+        if (candidate) {
+            res.json(candidate);
+        } else {
+            res.status(404).json({ error: 'Candidate not found' });
+        }
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
 };

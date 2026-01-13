@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import API_BASE_URL from '../config';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Play, Calendar, Briefcase, Award, Globe } from 'lucide-react';
 import clsx from 'clsx';
@@ -14,7 +15,7 @@ export default function RunConfigurationModal({ isOpen, onClose, onRun }) {
     // Fetch defaults when modal opens
     useEffect(() => {
         if (isOpen) {
-            fetch('http://localhost:5000/api/settings')
+            fetch(`${API_BASE_URL}/api/settings`)
                 .then(res => res.json())
                 .then(data => {
                     if (data.jobDefaults) {

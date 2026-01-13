@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Clock, CheckCircle, XCircle, FileSpreadsheet } from 'lucide-react';
+import API_BASE_URL from '../config';
+import { Clock, CheckCircle, XCircle, FileSpreadsheet, Users } from 'lucide-react';
 
 export default function History() {
     const [runs, setRuns] = useState([]);
 
     useEffect(() => {
-        fetch('http://localhost:5000/api/runs')
+        fetch(`${API_BASE_URL}/api/runs`)
             .then(res => res.json())
             .then(data => setRuns(data));
     }, []);
@@ -31,17 +32,26 @@ export default function History() {
                             </div>
                         </div>
 
-                        {run.sheetUrl && (
+                        <div className="flex gap-3">
                             <a
-                                href={run.sheetUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-2 px-4 py-2 bg-green-600/20 text-green-400 border border-green-500/50 hover:bg-green-600 hover:text-white rounded-xl transition-all font-medium"
+                                href="/candidates"
+                                className="flex items-center gap-2 px-4 py-2 bg-blue-600/20 text-blue-400 border border-blue-500/50 hover:bg-blue-600 hover:text-white rounded-xl transition-all font-medium"
                             >
-                                <FileSpreadsheet size={18} />
-                                View Sheet
+                                <Users size={18} />
+                                View Candidates
                             </a>
-                        )}
+                            {run.sheetUrl && (
+                                <a
+                                    href={run.sheetUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-2 px-4 py-2 bg-green-600/20 text-green-400 border border-green-500/50 hover:bg-green-600 hover:text-white rounded-xl transition-all font-medium"
+                                >
+                                    <FileSpreadsheet size={18} />
+                                    View Sheet
+                                </a>
+                            )}
+                        </div>
                     </div>
                 ))}
 

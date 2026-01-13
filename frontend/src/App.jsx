@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import API_BASE_URL from './config';
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -56,7 +57,7 @@ const PrivateRoute = ({ children }) => {
 function App() {
     // Apply theme on initial load
     useEffect(() => {
-        fetch('http://localhost:5000/api/settings')
+        fetch(`${API_BASE_URL}/api/settings`)
             .then(res => res.json())
             .then(data => {
                 if (data.theme === 'dark') {

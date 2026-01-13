@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import API_BASE_URL from '../config';
 
 const AuthContext = createContext();
 
@@ -25,7 +26,7 @@ export function AuthProvider({ children }) {
 
     const login = () => {
         // Real Google Login
-        window.location.href = 'http://localhost:5000/api/auth/google';
+        window.location.href = `${API_BASE_URL}/api/auth/google`;
 
         // Mock Login (Commented out)
         // const mockEmail = 'test@example.com';

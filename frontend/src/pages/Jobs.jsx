@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import API_BASE_URL from '../config';
 import { Plus, Search, Briefcase, MapPin, DollarSign, MoreVertical, Trash2, Edit } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import JobModal from '../components/JobModal';
@@ -23,7 +24,7 @@ export default function Jobs() {
 
     const fetchJobs = () => {
         setLoading(true);
-        fetch('http://localhost:5000/api/jobs')
+        fetch(`${API_BASE_URL}/api/jobs`)
             .then(res => res.json())
             .then(data => {
                 if (Array.isArray(data)) {
@@ -47,7 +48,7 @@ export default function Jobs() {
         setIsMatchModalOpen(true);
         setMatches([]); // Clear previous
 
-        fetch(`http://localhost:5000/api/jobs/${job._id}/matches`)
+        fetch(`${API_BASE_URL}/api/jobs/${job._id}/matches`)
             .then(res => res.json())
             .then(data => {
                 if (Array.isArray(data)) {
@@ -75,8 +76,8 @@ export default function Jobs() {
     const handleSaveJob = (jobData) => {
         const method = editingJob ? 'PUT' : 'POST';
         const url = editingJob
-            ? `http://localhost:5000/api/jobs/${editingJob._id}`
-            : 'http://localhost:5000/api/jobs';
+            ? `${API_BASE_URL}/api/jobs/${editingJob._id}`
+            : `${API_BASE_URL}/api/jobs`;
 
         fetch(url, {
             method,
@@ -94,7 +95,7 @@ export default function Jobs() {
 
     const handleDeleteJob = (id) => {
         if (window.confirm('Are you sure you want to delete this job?')) {
-            fetch(`http://localhost:5000/api/jobs/${id}`, { method: 'DELETE' })
+            fetch(`${API_BASE_URL}/api/jobs/${id}`, { method: 'DELETE' })
                 .then(() => fetchJobs())
                 .catch(err => console.error("Failed to delete job", err));
         }

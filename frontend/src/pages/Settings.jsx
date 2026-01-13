@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import API_BASE_URL from '../config';
 import { Save, RefreshCw, Moon, Sun, Briefcase, Award, Mail, Settings as SettingsIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -31,7 +32,7 @@ export default function Settings() {
     const fetchSettings = async () => {
         setLoading(true);
         try {
-            const res = await fetch('http://localhost:5000/api/settings');
+            const res = await fetch(`${API_BASE_URL}/api/settings`);
             const data = await res.json();
 
             // Ensure arrays are converted to strings for inputs if needed, 
@@ -55,7 +56,7 @@ export default function Settings() {
     const handleSave = async () => {
         setSaving(true);
         try {
-            await fetch('http://localhost:5000/api/settings', {
+            await fetch(`${API_BASE_URL}/api/settings`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(settings)

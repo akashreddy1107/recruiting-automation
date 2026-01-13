@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import API_BASE_URL from '../config';
 import { Mail, ChevronDown, ChevronRight, X, User, Calendar, Send, CheckCircle, AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -54,7 +55,7 @@ export default function Emails() {
     const fetchEmails = () => {
         setLoading(true);
         setError(null);
-        fetch(`http://localhost:5000/api/email/grouped?email=${emailToUse}`)
+        fetch(`${API_BASE_URL}/api/email/grouped?email=${emailToUse}`)
             .then(res => {
                 if (!res.ok) throw new Error('Failed to fetch emails');
                 return res.json();
@@ -141,7 +142,7 @@ RecruitAI`);
         setSendingEmail(true);
         setEmailStatus(null);
 
-        fetch('http://localhost:5000/api/email/send', {
+        fetch(`${API_BASE_URL}/api/email/send`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

@@ -1,5 +1,6 @@
 import { createContext, useState, useContext, useEffect } from 'react';
 import { useAuth } from './AuthContext';
+import API_BASE_URL from '../config';
 
 const AutomationContext = createContext();
 
@@ -23,7 +24,7 @@ export const AutomationProvider = ({ children }) => {
         setLastResult(null);
 
         try {
-            const res = await fetch('http://localhost:5000/api/runs', {
+            const res = await fetch(`${API_BASE_URL}/api/runs`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

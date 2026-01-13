@@ -1,5 +1,6 @@
 import express from 'express';
-import db from '../data/db.js';
+import Job from '../models/Job.js';
+import Candidate from '../models/Candidate.js';
 import { v4 as uuidv4 } from 'uuid';
 
 const router = express.Router();
@@ -7,10 +8,7 @@ const router = express.Router();
 // Get all jobs
 router.get('/', async (req, res) => {
     try {
-        await db.read();
-        const jobs = db.data.jobs || [];
-        // Sort by createdAt desc
-        jobs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        const jobs = await Job.find().sort({ createdAt: -1 });
         res.json(jobs);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -20,14 +18,10 @@ router.get('/', async (req, res) => {
 // Create a new job
 router.post('/', async (req, res) => {
     try {
-        await db.read();
-        const newJob = {
-            _id: uuidv4(),
+        const newJob = await Job.create({
             ...req.body,
-            createdAt: new Date().toISOString()
-        };
-        db.data.jobs.push(newJob);
-        await db.write();
+            createdAt: new Date()
+        });
         res.status(201).json(newJob);
     } catch (error) {
         res.status(400).json({ message: error.message });
@@ -37,13 +31,13 @@ router.post('/', async (req, res) => {
 // Update a job
 router.put('/:id', async (req, res) => {
     try {
-        await db.read();
-        const index = db.data.jobs.findIndex(j => j._id === req.params.id);
-        if (index === -1) return res.status(404).json({ message: 'Job not found' });
-
-        db.data.jobs[index] = { ...db.data.jobs[index], ...req.body };
-        await db.write();
-        res.json(db.data.jobs[index]);
+        const updatedJob = await Job.findByIdAndUpdate(
+            req.params.id,
+            req.body,
+            { new: true }
+        );
+        if (!updatedJob) return res.status(404).json({ message: 'Job not found' });
+        res.json(updatedJob);
     } catch (error) {
         res.status(400).json({ message: error.message });
     }
@@ -52,15 +46,10 @@ router.put('/:id', async (req, res) => {
 // Delete a job
 router.delete('/:id', async (req, res) => {
     try {
-        await db.read();
-        const initialLength = db.data.jobs.length;
-        db.data.jobs = db.data.jobs.filter(j => j._id !== req.params.id);
-
-        if (db.data.jobs.length === initialLength) {
+        const deletedJob = await Job.findByIdAndDelete(req.params.id);
+        if (!deletedJob) {
             return res.status(404).json({ message: 'Job not found' });
         }
-
-        await db.write();
         res.json({ message: 'Job deleted' });
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -70,11 +59,10 @@ router.delete('/:id', async (req, res) => {
 // Get matches for a job
 router.get('/:id/matches', async (req, res) => {
     try {
-        await db.read();
-        const job = db.data.jobs.find(j => j._id === req.params.id);
+        const job = await Job.findById(req.params.id);
         if (!job) return res.status(404).json({ message: 'Job not found' });
 
-        const candidates = db.data.candidates || [];
+        const candidates = await Candidate.find(); // Fetch all (optimize later with filtering if needed)
 
         // Normalize requirements (assume they are strings)
         const requirements = (job.requirements || []).map(r => r.toLowerCase().trim());

@@ -1,21 +1,16 @@
-import { Low } from 'lowdb';
-import { JSONFile } from 'lowdb/node';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import mongoose from 'mongoose';
+import dotenv from 'dotenv';
+dotenv.config();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const connectDB = async () => {
+    try {
+        const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/recruiting_app');
+        console.log(`MongoDB Connected: ${conn.connection.host}`);
+    } catch (error) {
+        console.error(`Error: ${error.message}`);
+        // don't exit process in dev if not urgent, but in prod we might want to
+        // process.exit(1);
+    }
+};
 
-const file = path.join(__dirname, 'db.json');
-const adapter = new JSONFile(file);
-const db = new Low(adapter, { users: [], candidates: [], runs: [], settings: {}, jobs: [], emailCache: {} });
-
-async function initDB() {
-    await db.read();
-    db.data ||= { users: [], candidates: [], runs: [], settings: {}, jobs: [], emailCache: {} };
-    await db.write();
-}
-
-initDB();
-
-export default db;
+export default connectDB;

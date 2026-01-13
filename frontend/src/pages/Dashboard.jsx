@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import API_BASE_URL from '../config';
 import { Users, FileText, CheckCircle, Clock, Play } from 'lucide-react';
 import StatsCard from '../components/StatsCard';
 import RunConfigurationModal from '../components/RunConfigurationModal';
@@ -21,9 +22,9 @@ export default function Dashboard() {
 
     const fetchStats = async () => {
         try {
-            const res = await fetch('http://localhost:5000/api/runs');
+            const res = await fetch(`${API_BASE_URL}/api/runs`);
             const runs = await res.json();
-            const resCandidates = await fetch('http://localhost:5000/api/candidates');
+            const resCandidates = await fetch(`${API_BASE_URL}/api/candidates`);
             const candidates = await resCandidates.json();
 
             const totalCandidates = candidates.length;

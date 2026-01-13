@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import API_BASE_URL from '../config';
 import { Search, Filter, Mail, FileText, X, Send, CheckCircle, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -20,7 +21,7 @@ export default function Candidates() {
     const userEmail = "akashreddy1107@gmail.com";
 
     useEffect(() => {
-        fetch('http://localhost:5000/api/candidates')
+        fetch(`${API_BASE_URL}/api/candidates`)
             .then(res => res.json())
             .then(data => setCandidates(data));
     }, []);
@@ -92,7 +93,7 @@ RecruitAI`);
         setEmailStatus(null);
 
         try {
-            const response = await fetch('http://localhost:5000/api/email/send', {
+            const response = await fetch(`${API_BASE_URL}/api/email/send`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

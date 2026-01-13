@@ -1,5 +1,5 @@
 import { google } from 'googleapis';
-import db from '../data/db.js';
+import User from '../models/User.js';
 
 const oauth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
@@ -41,25 +41,21 @@ export const getUserInfo = async (tokens) => {
 };
 
 export const saveUser = async (userInfo, tokens) => {
-    await db.read();
-    const existingUserIndex = db.data.users.findIndex(u => u.email === userInfo.email);
+    // Determine the unique key (email)
+    const { email } = userInfo;
 
-    const user = {
-        id: userInfo.id,
-        email: userInfo.email,
-        name: userInfo.name,
-        picture: userInfo.picture,
-        tokens: tokens, // In production, encrypt this!
-        updatedAt: new Date().toISOString()
-    };
-
-    if (existingUserIndex >= 0) {
-        db.data.users[existingUserIndex] = user;
-    } else {
-        db.data.users.push(user);
-    }
-
-    await db.write();
+    // Use findOneAndUpdate with upsert: true to create or update
+    const user = await User.findOneAndUpdate(
+        { email },
+        {
+            email,
+            name: userInfo.name,
+            picture: userInfo.picture,
+            tokens, // In production, consider encrypting this
+            updatedAt: new Date()
+        },
+        { new: true, upsert: true }
+    );
     return user;
 };
 
