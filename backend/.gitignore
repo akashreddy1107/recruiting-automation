@@ -5,3 +5,5 @@ coverage
 token.json
 credentials.json
 db.json
+backend/data/db.json
+backend/data/db_backup.json
