@@ -36,7 +36,7 @@ export const listUnreadMessages = async (email, startDate) => {
     const res = await gmail.users.messages.list({
         userId: 'me',
         q: q,
-        maxResults: 100 // Limit increased to capture more candidates
+        maxResults: 20 // Reduced from 100 to prevent timeouts in production
     });
     return res.data.messages || [];
 };
