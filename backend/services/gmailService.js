@@ -385,12 +385,9 @@ export const getGroupedEmails = async (email) => {
 
         // 2. Parse details from each email
         const grouped = {};
-        const skillSet = new Set(['React', 'Node', 'Python', 'Java', 'AWS', 'Docker', 'Kubernetes', 'SQL', 'NoSQL', 'TypeScript']);
 
-        // Initialize groups for known skills
-        skillSet.forEach(skill => {
-            grouped[skill] = [];
-        });
+        // Use ALL_SKILLS for comprehensive grouping instead of a limited set
+        // We do NOT pre-initialize keys to avoid empty groups for all 100+ skills
 
         const promises = messages.map(async (msg) => {
             try {
@@ -412,8 +409,14 @@ export const getGroupedEmails = async (email) => {
                     };
 
                     skillsInEmail.forEach(skill => {
-                        const key = [...skillSet].find(s => s.toLowerCase() === skill.toLowerCase());
+                        // All skills in candidates are already from ALL_SKILLS (canonical)
+                        // But we verify against ALL_SKILLS just in case custom skills are added later
+                        const key = ALL_SKILLS.find(s => s.toLowerCase() === skill.toLowerCase());
+
                         if (key) {
+                            if (!grouped[key]) {
+                                grouped[key] = [];
+                            }
                             grouped[key].push(emailData);
                         }
                     });
